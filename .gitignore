@@ -1,0 +1,24 @@
+# General Python ignores
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyc
+
+# Python virtual environments
+venv/
+*.venv/
+env/
+.venv/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Environment variables
+.env
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
