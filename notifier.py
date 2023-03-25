@@ -3,23 +3,36 @@ import email
 import re
 import requests
 import time
+from dotenv import load_dotenv
+from email.header import decode_header
+import os
+
+load_dotenv()
 
 def check_yahoo_email(username, password, subject_to_check):
-    mail = imaplib.IMAP4_SSL("imap.mail.yahoo.com")
+    mail = imaplib.IMAP4_SSL("imap.mail.yahoo.co.jp", 993)
+    mail._encoding = "UTF-8"
     mail.login(username, password)
     mail.select("inbox")
 
-    _, data = mail.search(None, "UNSEEN")
+    utf8_subject_to_check = subject_to_check.encode('utf-8')
+    search_criteria = f'SUBJECT "{utf8_subject_to_check.decode("utf-8")}"'
+    _, data = mail.search("UTF-8", search_criteria)
     email_ids = data[0].split()
 
-    for email_id in email_ids:
-        _, msg_data = mail.fetch(email_id, "(RFC822)")
+    if email_ids:
+        latest_email_id = email_ids[-1]
+        _, msg_data = mail.fetch(latest_email_id, "(RFC822)")
         raw_email = msg_data[0][1]
         msg = email.message_from_bytes(raw_email)
-        subject = msg["subject"]
+
+        raw_subject = msg["subject"]
+        decoded_subject = decode_header(raw_subject)
+        subject = "".join([t[0].decode(t[1] or "ascii") for t in decoded_subject])
 
         if subject_to_check in subject:
             body = get_email_body(msg)
+            # print(f"Body: {body}")
             numbers = extract_numbers_from_email_body(body)
             return numbers
     return None
@@ -29,11 +42,13 @@ def get_email_body(msg):
         for part in msg.walk():
             if part.get_content_type() == "text/plain":
                 return part.get_payload(decode=True).decode()
+            elif part.get_content_type() == "text/html":
+                return part.get_payload(decode=True).decode()
     else:
         return msg.get_payload(decode=True).decode()
 
 def extract_numbers_from_email_body(body):
-    match = re.search(r"あなたの2段階サインイン用コード:\s*(\d{6})", body)
+    match = re.search(r'<div[^>]*>\s*([\d]{6})\s*</div>', body, re.MULTILINE | re.IGNORECASE)
     if match:
         return match.group(1)
     return None
@@ -56,5 +71,11 @@ while True:
     code = check_yahoo_email(username, password, subject_to_check)
     if code:
         message = f"2段階認証コードが届きました: {code}"
-        send_line_message(access_token, message)
+        result = send_line_message(access_token, message)
+        if not result:
+            print("通知の送信に失敗しました。")
+        else:
+            print(f"送信成功: {message}")
+    else:
+        print("2段階認証コードが見つかりませんでした。")
     time.sleep(60)  # 1分ごとにチェック
