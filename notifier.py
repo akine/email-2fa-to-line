@@ -83,4 +83,4 @@ while True:
             print(f"既に送信済みのコード: {code}")
     else:
         print("2段階認証コードが見つかりませんでした。")
-    time.sleep(60)  # 1分ごとにチェック
+    time.sleep(300)  # 5分ごとにチェック
