@@ -32,7 +32,6 @@ def check_yahoo_email(username, password, subject_to_check):
 
         if subject_to_check in subject:
             body = get_email_body(msg)
-            # print(f"Body: {body}")
             numbers = extract_numbers_from_email_body(body)
             return numbers
     return None
@@ -67,15 +66,21 @@ password = os.getenv("YAHOO_PASSWORD")
 subject_to_check = os.getenv("EMAIL_SUBJECT")
 access_token = os.getenv("LINE_ACCESS_TOKEN")
 
+sent_codes = set()
+
 while True:
     code = check_yahoo_email(username, password, subject_to_check)
     if code:
-        message = f"2段階認証コードが届きました: {code}"
-        result = send_line_message(access_token, message)
-        if not result:
-            print("通知の送信に失敗しました。")
+        if code not in sent_codes:
+            message = f"2段階認証コードが届きました: {code}"
+            result = send_line_message(access_token, message)
+            if not result:
+                print("通知の送信に失敗しました。")
+            else:
+                print(f"送信成功: {message}")
+                sent_codes.add(code)
         else:
-            print(f"送信成功: {message}")
+            print(f"既に送信済みのコード: {code}")
     else:
         print("2段階認証コードが見つかりませんでした。")
     time.sleep(60)  # 1分ごとにチェック
