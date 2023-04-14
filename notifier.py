@@ -68,9 +68,17 @@ access_token = os.getenv("LINE_ACCESS_TOKEN")
 
 sent_codes = set()
 
+# sent_codes.txtファイルから送信済みのコードを読み込む
+sent_codes_file = "sent_codes.txt"
+if os.path.exists(sent_codes_file):
+    with open(sent_codes_file, "r") as f:
+        for line in f:
+            sent_codes.add(line.strip())
+
 while True:
     code = check_yahoo_email(username, password, subject_to_check)
     if code:
+        # sent_codesに含まれていない場合だけメッセージを送信
         if code not in sent_codes:
             message = f"2段階認証コードが届きました: {code}"
             result = send_line_message(access_token, message)
@@ -78,7 +86,11 @@ while True:
                 print("通知の送信に失敗しました。")
             else:
                 print(f"送信成功: {message}")
+                # sent_codesに送信済みのコードを追加
                 sent_codes.add(code)
+                # sent_codes.txtファイルに送信済みのコードを追記
+                with open(sent_codes_file, "a") as f:
+                    f.write(f"{code}\n")
         else:
             print(f"既に送信済みのコード: {code}")
     else:
